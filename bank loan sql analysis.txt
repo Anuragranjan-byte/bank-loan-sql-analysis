@@ -1,0 +1,101 @@
+--1. How does the credit score trend across different age ranges?
+select 
+CASE 	
+	WHEN Age BETWEEN 20 AND 30 -- AGE >= 20 AND AGE<= 30
+		THEN '20-30'
+	WHEN AGE BETWEEN 31 AND 40 -- AGE >= 31 AND AGE <=40
+		THEN '31-40'
+	WHEN AGE BETWEEN 41 AND 50
+		THEN '41-50'
+	WHEN AGE BETWEEN 51 AND 60
+		THEN '51-60'
+	ELSE '> 60'
+END AS GROUPS, AVG(Credit_Score) AS AVG_CREDIT_SCORE
+from bank_loan_data
+GROUP BY (CASE 	
+	WHEN Age BETWEEN 20 AND 30 -- AGE >= 20 AND AGE<= 30
+		THEN '20-30'
+	WHEN AGE BETWEEN 31 AND 40 -- AGE >= 31 AND AGE <=40
+		THEN '31-40'
+	WHEN AGE BETWEEN 41 AND 50
+		THEN '41-50'
+	WHEN AGE BETWEEN 51 AND 60
+		THEN '51-60'
+	ELSE '> 60'
+END)
+
+--2. Does education level influence loan approval?
+select Education_Level, count(Loan_Status) as Approval_count
+from bank_loan_data
+where Loan_Status = 'approved'
+group by Education_Level
+
+--3. Which were the highest loan amounts approved?
+--select * from bank_loan_data
+select top 5 loan_amount from bank_loan_data
+where Loan_Amount ='approved'
+order by Loan_Amount desc
+-- 4. Do lower credit scores correlate with higher late payments?
+select top 10 Credit_Score,no_of_delayed_payments from bank_loan_data
+where Loan_Status ='approved'
+order by Credit_Score,No_of_Delayed_Payments desc
+
+-- 5. Which customers have a high EMI burden relative to their income?
+select distinct customer_id,round(annual_income/12,2) as monthly_income,monthly_installment from bank_loan_data
+where Monthly_Installment > round(annual_income/12,2) 
+
+-- 6.  Do longer loan terms lead to higher default rates?
+select loan_term_months,sum(defaulted) as defaulter from bank_loan_data
+group by Loan_Term_Months
+
+
+-- 7. Is there a gender-based difference in loan default rates?
+select gender,sum(defaulted)/(select sum(defaulted) from bank_loan_data) as defaulter from bank_loan_data
+group by gender   
+
+-- 8. Which loan types carry the highest monthly repayment burdens?
+select top 1 loan_type,avg(monthly_installment) as avg_install from bank_loan_data
+group by Loan_Type
+order by avg_install desc
+
+--9. What are the most frequent reasons customers apply for loans for each loan type?
+SELECT loan_type, loan_purpose, reason_count
+FROM
+(
+    SELECT 
+        loan_type,
+        Loan_Purpose,
+        COUNT(*) AS reason_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY loan_type
+            ORDER BY COUNT(*) DESC
+        ) AS rn
+    FROM bank_loan_data
+    GROUP BY loan_type, Loan_Purpose
+) t
+WHERE rn = 1;
+
+-- 10. How does default rate vary across employment statuses      (e.g., unemployed vs employed)?
+
+select employment_status,sum(defaulted) as defaulter,sum(defaulted)/(select sum(defaulted) as default_rate from bank_loan_data)*100 as defaulter from bank_loan_data
+group by Employment_Status
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
